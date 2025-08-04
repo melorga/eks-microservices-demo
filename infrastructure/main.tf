@@ -141,15 +141,16 @@ resource "aws_security_group" "additional_sg" {
 resource "aws_eks_addon" "addons" {
   for_each = var.cluster_addons
 
-  cluster_name             = module.eks.cluster_name
-  addon_name               = each.key
-  addon_version            = each.value.version
-  resolve_conflicts        = "OVERWRITE"
-  service_account_role_arn = each.value.service_account_role_arn
-
-  depends_on = [module.eks]
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = each.key
+  addon_version               = each.value.addon_version
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  service_account_role_arn    = each.value.service_account_role_arn
 
   tags = local.common_tags
+
+  depends_on = [module.eks.eks_managed_node_groups]
 }
 
 # Data source for EKS cluster
