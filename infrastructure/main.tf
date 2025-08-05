@@ -143,7 +143,7 @@ resource "aws_eks_addon" "addons" {
 
   cluster_name                = module.eks.cluster_name
   addon_name                  = each.key
-  addon_version               = each.value.addon_version
+  addon_version               = each.value.version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
   service_account_role_arn    = each.value.service_account_role_arn
@@ -153,32 +153,28 @@ resource "aws_eks_addon" "addons" {
   depends_on = [module.eks.eks_managed_node_groups]
 }
 
-# Data source for EKS cluster
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
-
+# Data source for EKS cluster authentication (needed for kubectl configuration)
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
 }
 
-# Kubernetes provider
+# Kubernetes provider configuration using EKS module outputs
 provider "kubernetes" {
-  host                   = data.aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.cluster.token
 }
 
-# Helm provider
+# Helm provider configuration using EKS module outputs
 provider "helm" {
   kubernetes {
-    host                   = data.aws_eks_cluster.cluster.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.cluster.token
   }
 }
 
-# AWS Load Balancer Controller
+# AWS Load Balancer Controller - Essential for ALB/NLB integration
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
