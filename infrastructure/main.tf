@@ -250,12 +250,15 @@ provider "helm" {
 # ----------------------------------------------------------------------------
 # AWS Load Balancer Controller (Helm)
 # ----------------------------------------------------------------------------
+# NOTE: chart v3.x version-aligns with controller v3 (Gateway API GA).
+# See https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.13/deploy/upgrade/ for v2->v3 migration notes.
+# Existing Service+Ingress resources continue to work; Gateway API is opt-in.
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version    = "1.10.0" # 2025 release; bump via Dependabot
+  version    = "3.2.2" # MAJOR bump from 1.10.0; refresh IAM policy from v3.2.2 release tag
 
   set {
     name  = "clusterName"
@@ -341,7 +344,7 @@ resource "helm_release" "metrics_server" {
   repository = "https://kubernetes-sigs.github.io/metrics-server/"
   chart      = "metrics-server"
   namespace  = "kube-system"
-  version    = "3.12.2" # 2025 release line
+  version    = "3.13.0"
 
   depends_on = [module.eks]
 }
@@ -361,7 +364,7 @@ resource "helm_release" "cluster_autoscaler" {
   repository = "https://kubernetes.github.io/autoscaler"
   chart      = "cluster-autoscaler"
   namespace  = "kube-system"
-  version    = "9.43.2" # 2025 release line
+  version    = "9.57.0"
 
   set {
     name  = "autoDiscovery.clusterName"
