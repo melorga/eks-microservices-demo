@@ -7,50 +7,79 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   terraform:
     name: Terraform CI/CD
-    uses: melorga-portfolio/gha-workflows/.github/workflows/terraform.yml@main
+    uses: melorga/gha-workflows/.github/workflows/terraform.yml@claude/audit-portfolio-repos-QH4PL
     with:
-      terraform_version: '1.8.5'
+      terraform_version: '1.9.8'
       working_directory: './infrastructure'
       environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
       auto_apply: false  # Manual approval for EKS clusters
+      aws_role_arn: ${{ secrets.AWS_OIDC_ROLE_ARN }}
     secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
 
   kubernetes-lint:
     name: Kubernetes Manifests Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Lint Kubernetes manifests
-        uses: azure/k8s-lint@v1
-        with:
-          manifests: |
-            kubernetes/namespaces/*.yaml
-            kubernetes/applications/*.yaml
-            kubernetes/monitoring/*.yaml
 
-  security:
-    name: Security Scan
+      - name: Lint Kubernetes manifests with kubeconform
+        uses: yannh/kubeconform-action@v1.0.0
+        with:
+          files: kubernetes/
+          strict: true
+          ignore_missing_schemas: true
+          summary: true
+
+  k8s-security:
+    name: Kubernetes Security Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+
+      - name: Trivy filesystem scan (manifests + repo)
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
-      
+
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+  iac-security:
+    name: Terraform / IaC Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy config scan (infrastructure)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'config'
+          scan-ref: 'infrastructure/'
+          format: 'sarif'
+          output: 'trivy-iac.sarif'
+
+      - name: Upload Trivy IaC scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-iac.sarif'
