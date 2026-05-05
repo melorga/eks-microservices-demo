@@ -1,7 +1,7 @@
 # EKS Microservices Demo
 
 [![AWS](https://img.shields.io/badge/AWS-EKS%20%7C%20Fargate%20%7C%20NLB-FF9900?style=for-the-badge&logo=amazon-aws)](https://aws.amazon.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.33-326CE5?style=for-the-badge&logo=kubernetes)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.34-326CE5?style=for-the-badge&logo=kubernetes)](https://kubernetes.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-1.9%2B-7B42BC?style=for-the-badge&logo=terraform)](https://terraform.io/)
 
 > **Status: reference architecture.** A single hardened nginx Deployment
