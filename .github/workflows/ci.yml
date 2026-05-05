@@ -21,7 +21,7 @@ jobs:
     name: Terraform CI/CD
     uses: melorga/gha-workflows/.github/workflows/terraform.yml@claude/audit-portfolio-repos-QH4PL
     with:
-      terraform_version: '1.9.8'
+      terraform_version: '1.15.1'
       working_directory: './infrastructure'
       environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
       auto_apply: false  # Manual approval for EKS clusters
@@ -33,7 +33,7 @@ jobs:
     name: Kubernetes Manifests Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install kubeconform
         run: |
@@ -48,10 +48,10 @@ jobs:
     name: Kubernetes Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Trivy filesystem scan (manifests + repo)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -59,7 +59,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -68,10 +68,10 @@ jobs:
     name: Terraform / IaC Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Trivy config scan (infrastructure)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'config'
           scan-ref: 'infrastructure/'
@@ -79,7 +79,7 @@ jobs:
           output: 'trivy-iac.sarif'
 
       - name: Upload Trivy IaC scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-iac.sarif'
