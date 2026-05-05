@@ -43,8 +43,3 @@ __pycache__/
 # Test outputs
 test-results/
 coverage/
-
-# Documentation
-*.md
-!README.md
-!docs/README.md
