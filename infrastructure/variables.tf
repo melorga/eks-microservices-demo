@@ -34,9 +34,9 @@ variable "public_subnet_cidrs" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version. EKS 1.29 reached extended-support EOL on 2026-03-23 and must not be used."
+  description = "Kubernetes version. EKS 1.33 standard support ends 2026-07-29; 1.34 standard support ends ~2026-10-27. Source: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions-standard.html"
   type        = string
-  default     = "1.33"
+  default     = "1.34"
 }
 
 variable "allowed_admin_cidrs" {
@@ -88,10 +88,10 @@ variable "log_retention_days" {
 }
 
 # NOTE on addon versions:
-# These defaults are reasonable late-2025 / early-2026 GA versions for K8s
-# 1.33 clusters, but the *exact* addon version available in any given AWS
+# These defaults are reasonable May 2026 GA versions for K8s 1.34
+# clusters, but the *exact* addon version available in any given AWS
 # region drifts. Before applying, verify the latest compatible build with:
-#   aws eks describe-addon-versions --kubernetes-version 1.33 --addon-name <name>
+#   aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name <name>
 # and bump these defaults (or feed them in via tfvars / Dependabot).
 variable "cluster_addons" {
   description = "Map of cluster addon configurations"
@@ -101,15 +101,19 @@ variable "cluster_addons" {
   }))
   default = {
     coredns = {
-      version = "v1.11.4-eksbuild.1"
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name coredns'
+      version = "v1.12.1-eksbuild.2"
     }
     kube-proxy = {
-      version = "v1.33.0-eksbuild.2"
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name kube-proxy' (confirm eksbuild suffix)
+      version = "v1.34.0-eksbuild.2"
     }
     vpc-cni = {
-      version = "v1.19.2-eksbuild.1"
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name vpc-cni'
+      version = "v1.19.5-eksbuild.3"
     }
     aws-ebs-csi-driver = {
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name aws-ebs-csi-driver' (exact build couldn't be verified)
       version = "v1.39.0-eksbuild.1"
       # service_account_role_arn populated automatically in main.tf
       # from aws_iam_role for the EBS CSI IRSA role.
