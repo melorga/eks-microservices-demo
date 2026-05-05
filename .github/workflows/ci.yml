@@ -1,4 +1,3 @@
----
 name: CI/CD Pipeline
 
 on:
@@ -36,13 +35,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lint Kubernetes manifests with kubeconform
-        uses: yannh/kubeconform-action@v1.0.0
-        with:
-          files: kubernetes/
-          strict: true
-          ignore_missing_schemas: true
-          summary: true
+      - name: Install kubeconform
+        run: |
+          curl -fsSL -o kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+      - name: Validate Kubernetes manifests
+        run: kubeconform -summary -strict -ignore-missing-schemas kubernetes/
 
   k8s-security:
     name: Kubernetes Security Scan
