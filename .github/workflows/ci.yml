@@ -15,14 +15,11 @@ permissions:
 jobs:
   terraform:
     # Reusable workflow already sets its own job names (Validate/Plan/Apply/
-    # Integration Tests) and its own workflow-level concurrency. Do NOT set
-    # `name:` here or a top-level `concurrency:` on the caller -- the latter
-    # collides with the callee's identical group expression and triggers a
-    # GitHub-side concurrency deadlock that silently cancels every sub-job.
+    # Integration Tests). Do NOT set `name:` here.
     #
     # Pinned to a specific commit on gha-workflows for reproducibility.
     # Bump after merging the gha-workflows audit branch and cutting a tag.
-    uses: melorga/gha-workflows/.github/workflows/terraform.yml@f076d348da88dea26498a45ce537e3b074d6aa4c
+    uses: melorga/gha-workflows/.github/workflows/terraform.yml@5a58aa5557cdea2b69f3185c786577e4fcc2d29c
     with:
       terraform_version: '1.15.1'
       working_directory: './infrastructure'
