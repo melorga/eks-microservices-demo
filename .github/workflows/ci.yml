@@ -1,4 +1,3 @@
----
 name: CI/CD Pipeline
 
 on:
@@ -7,50 +6,80 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   terraform:
     name: Terraform CI/CD
-    uses: melorga-portfolio/gha-workflows/.github/workflows/terraform.yml@main
+    # Pinned to a specific commit on gha-workflows for reproducibility.
+    # Bump after merging the gha-workflows audit branch and cutting a tag.
+    uses: melorga/gha-workflows/.github/workflows/terraform.yml@f076d348da88dea26498a45ce537e3b074d6aa4c
     with:
-      terraform_version: '1.8.5'
+      terraform_version: '1.15.1'
       working_directory: './infrastructure'
       environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
-      auto_apply: false  # Manual approval for EKS clusters
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      aws_role_arn: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
   kubernetes-lint:
     name: Kubernetes Manifests Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Lint Kubernetes manifests
-        uses: azure/k8s-lint@v1
-        with:
-          manifests: |
-            kubernetes/namespaces/*.yaml
-            kubernetes/applications/*.yaml
-            kubernetes/monitoring/*.yaml
+      - uses: actions/checkout@v6
 
-  security:
-    name: Security Scan
+      - name: Install kubeconform
+        run: |
+          curl -fsSL -o kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -v
+      - name: Validate Kubernetes manifests
+        run: kubeconform -summary -strict -ignore-missing-schemas kubernetes/
+
+  k8s-security:
+    name: Kubernetes Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - uses: actions/checkout@v6
+
+      - name: Trivy filesystem scan (manifests + repo)
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
-      
+
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+  iac-security:
+    name: Terraform / IaC Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Trivy config scan (infrastructure)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          scan-ref: 'infrastructure/'
+          format: 'sarif'
+          output: 'trivy-iac.sarif'
+
+      - name: Upload Trivy IaC scan results
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-iac.sarif'

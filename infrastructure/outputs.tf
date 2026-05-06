@@ -21,6 +21,7 @@ output "cluster_iam_role_arn" {
 output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
   value       = module.eks.cluster_certificate_authority_data
+  sensitive   = true
 }
 
 output "cluster_oidc_issuer_url" {
@@ -53,9 +54,19 @@ output "fargate_profiles" {
   value       = module.eks.fargate_profiles
 }
 
-output "cluster_addons" {
-  description = "Map of cluster addons"
-  value       = aws_eks_addon.addons
+output "ebs_csi_irsa_role_arn" {
+  description = "IAM role ARN for the aws-ebs-csi-driver addon (IRSA)"
+  value       = module.ebs_csi_irsa_role.iam_role_arn
+}
+
+output "aws_load_balancer_controller_irsa_role_arn" {
+  description = "IAM role ARN for the AWS Load Balancer Controller (IRSA)"
+  value       = module.aws_load_balancer_controller_irsa_role.iam_role_arn
+}
+
+output "kms_key_arn" {
+  description = "KMS key ARN used for cluster secrets envelope encryption"
+  value       = aws_kms_key.eks.arn
 }
 
 output "kubectl_config" {

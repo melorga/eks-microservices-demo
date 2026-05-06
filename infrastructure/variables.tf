@@ -8,9 +8,9 @@ variable "environment" {
   description = "Environment name"
   type        = string
   default     = "dev"
-  
+
   validation {
-    condition = contains(["dev", "stage", "prod"], var.environment)
+    condition     = contains(["dev", "stage", "prod"], var.environment)
     error_message = "Environment must be one of: dev, stage, prod."
   }
 }
@@ -34,9 +34,15 @@ variable "public_subnet_cidrs" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version"
+  description = "Kubernetes version. EKS 1.33 standard support ends 2026-07-29; 1.34 standard support ends ~2026-10-27. Source: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions-standard.html"
   type        = string
-  default     = "1.29"
+  default     = "1.34"
+}
+
+variable "allowed_admin_cidrs" {
+  description = "CIDR blocks permitted to reach the EKS public API endpoint. MUST be restricted in real use; the 0.0.0.0/0 default is for first-time bring-up only."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 
 variable "enable_managed_nodes" {
@@ -49,6 +55,12 @@ variable "node_instance_types" {
   description = "Instance types for worker nodes"
   type        = list(string)
   default     = ["t3.medium"]
+
+  validation {
+    # t2.* is paravirtual / older generation; disallow.
+    condition     = alltrue([for t in var.node_instance_types : !startswith(t, "t2.")])
+    error_message = "t2.* instance types are not supported; use t3/t3a/m6i/c6i or newer."
+  }
 }
 
 variable "min_nodes" {
@@ -75,28 +87,48 @@ variable "log_retention_days" {
   default     = 7
 }
 
+# NOTE on addon versions:
+# These defaults are reasonable May 2026 GA versions for K8s 1.34
+# clusters, but the *exact* addon version available in any given AWS
+# region drifts. Before applying, verify the latest compatible build with:
+#   aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name <name>
+# and bump these defaults (or feed them in via tfvars / Dependabot).
 variable "cluster_addons" {
   description = "Map of cluster addon configurations"
   type = map(object({
-    version                 = string
-    service_account_role_arn = string
+    version                  = string
+    service_account_role_arn = optional(string)
   }))
   default = {
     coredns = {
-      version                 = "v1.10.1-eksbuild.5"
-      service_account_role_arn = null
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name coredns'
+      version = "v1.12.1-eksbuild.2"
     }
     kube-proxy = {
-      version                 = "v1.29.0-eksbuild.1"
-      service_account_role_arn = null
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name kube-proxy' (confirm eksbuild suffix)
+      version = "v1.34.0-eksbuild.2"
     }
     vpc-cni = {
-      version                 = "v1.16.0-eksbuild.1"
-      service_account_role_arn = null
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name vpc-cni'
+      version = "v1.19.5-eksbuild.3"
     }
     aws-ebs-csi-driver = {
-      version                 = "v1.26.0-eksbuild.1"
-      service_account_role_arn = null
+      # TODO: verify via 'aws eks describe-addon-versions --kubernetes-version 1.34 --addon-name aws-ebs-csi-driver' (exact build couldn't be verified)
+      version = "v1.39.0-eksbuild.1"
+      # service_account_role_arn populated automatically in main.tf
+      # from aws_iam_role for the EBS CSI IRSA role.
     }
   }
+}
+
+variable "state_bucket" {
+  description = "S3 bucket for Terraform remote state. TODO: replace with your bucket."
+  type        = string
+  default     = "REPLACE-ME-tfstate-bucket"
+}
+
+variable "state_lock_table" {
+  description = "DynamoDB table for Terraform state locking. TODO: replace with your table."
+  type        = string
+  default     = "REPLACE-ME-tfstate-lock"
 }
