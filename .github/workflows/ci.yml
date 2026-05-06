@@ -19,15 +19,15 @@ concurrency:
 jobs:
   terraform:
     name: Terraform CI/CD
-    uses: melorga/gha-workflows/.github/workflows/terraform.yml@claude/audit-portfolio-repos-QH4PL
+    # Pinned to a specific commit on gha-workflows for reproducibility.
+    # Bump after merging the gha-workflows audit branch and cutting a tag.
+    uses: melorga/gha-workflows/.github/workflows/terraform.yml@f076d348da88dea26498a45ce537e3b074d6aa4c
     with:
       terraform_version: '1.15.1'
       working_directory: './infrastructure'
       environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
-      auto_apply: false  # Manual approval for EKS clusters
       aws_role_arn: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-    secrets:
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
   kubernetes-lint:
     name: Kubernetes Manifests Lint
