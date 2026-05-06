@@ -83,7 +83,7 @@ resource "aws_kms_alias" "eks" {
 # ----------------------------------------------------------------------------
 module "ebs_csi_irsa_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.44"
+  version = "~> 6.6"
 
   role_name             = "${local.cluster_name}-ebs-csi"
   attach_ebs_csi_policy = true
@@ -111,7 +111,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
 
 module "aws_load_balancer_controller_irsa_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.44"
+  version = "~> 6.6"
 
   role_name = "${local.cluster_name}-aws-load-balancer-controller"
 
