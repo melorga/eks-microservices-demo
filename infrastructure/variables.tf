@@ -120,15 +120,3 @@ variable "cluster_addons" {
     }
   }
 }
-
-variable "state_bucket" {
-  description = "S3 bucket for Terraform remote state. TODO: replace with your bucket."
-  type        = string
-  default     = "REPLACE-ME-tfstate-bucket"
-}
-
-variable "state_lock_table" {
-  description = "DynamoDB table for Terraform state locking. TODO: replace with your table."
-  type        = string
-  default     = "REPLACE-ME-tfstate-lock"
-}
