@@ -5,7 +5,7 @@ terraform {
     bucket         = "REPLACE-ME-tfstate-bucket" # TODO: replace with your bucket
     key            = "eks-microservices-demo/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "REPLACE-ME-tfstate-lock"   # TODO: replace with your table
+    dynamodb_table = "REPLACE-ME-tfstate-lock" # TODO: replace with your table
     encrypt        = true
   }
 }
